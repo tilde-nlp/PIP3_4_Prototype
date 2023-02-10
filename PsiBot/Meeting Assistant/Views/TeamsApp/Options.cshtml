@@ -1,0 +1,52 @@
+﻿@using PsiBot.Model.Models;
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@model OptionsViewModel
+
+
+<div class="select-label-holder">
+    <p class="light-gray" for="asrlangsel">@Localizer["MEETING_LANGUAGE"].Value</p>
+    <div class="select-holder">
+        <select @(!Model.isOrganizer ? "disabled" : null) class="" id="asrlangsel">
+            <option value="">@Localizer["SELECT_LANGUAGE"].Value</option>
+            @foreach (var lang in Model.asrLangs)
+            {
+                <option value="@lang" @(lang == Model.activeAsrLang ? "selected=\"selected\"" : "")> @Model.Lang(lang)</option>
+            }
+        </select>
+        <input value="@(Model.isOrganizer ? "true" : "false")" id="isOrganizerHd" type="hidden" />
+    </div>
+</div>
+
+
+<script>
+    var Cookies = window.Cookies;
+    $(function () {
+        $("#btnInviteBot").show();
+        $("#btnRemoveBot").show();
+        //$('.real-time-language-block').show();
+    })
+    $('.real-time-language-block').hide();
+    var mtLang = Cookies.get("mtlang");
+    if (mtLang != null)
+        $("#mtlangsel").val(mtLang);
+    $("#error").append("mtLang got: " + mtLang);
+    if (mtLang != null && connection != null) {
+        connection.invoke("subscribe", meetingId, mtLang);
+    }
+    $('#mtlangsel').on('change', function () {
+        mtLang = this.value;
+        $("#download").html("<a href=\"" + `${window.location.origin}/teamsapp/meetingnotes?thread=${meetingId}&lang=${mtLang}` + "\" download><button>Transcript</button></a>");
+        Cookies.set('mtlang', this.value, { expires: 31 });
+        connection.invoke("subscribe", meetingId, this.value);
+        $("#messageListContainer").load(`${window.location.origin}/teamsapp/transcript?thread=${meetingId}&lang=${mtLang}`, function (data) {
+            start();
+            $(".message-time").each(function () {
+                $(this).text(formatTime(parseInt($(this).text())))
+            });
+        });
+    });
+
+</script>
+<div id="download"></div>
+

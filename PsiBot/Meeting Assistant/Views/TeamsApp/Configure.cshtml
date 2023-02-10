@@ -1,0 +1,277 @@
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@model PsiBot.Services.ViewModel.ConfigureViewModel
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Side Panel Config page</title>
+    <script src="https://statics.teams.microsoft.com/sdk/v1.7.0/js/MicrosoftTeams.min.js"></script>
+    <script src="https://unpkg.com/@@microsoft/mgt/dist/bundle/mgt-loader.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 0 7% !important;
+        }
+
+        .containers {
+            flex: 1 1 auto;
+            height: 100%;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .footers {
+            flex: 0 0 auto;
+            margin-top: 3px;
+            padding-top: 5px;
+        }
+
+        .alert, input {
+            border-radius: 0 !important;
+        }
+
+    </style>
+</head>
+
+<body style="background: transparent;">
+
+    <script>
+        var userId = "", meetingId, tenantId;
+        var optionsCalled = false;
+        var token = "";
+        var isAuthorized = false;
+        var adminApproval = false;
+
+        const providerStateChanged = async () => {
+            if (mgt.Providers.globalProvider.state === mgt.ProviderState.SignedIn) {
+                token = await mgt.Providers.globalProvider.getAccessToken({ scopes: ['OnlineMeetings.Read', 'Chat.ReadBasic'] });
+                if (!optionsCalled && userId != "")
+                    callOptions();
+            }
+        }
+
+        mgt.Providers.onProviderUpdated(providerStateChanged);
+        mgt.Providers.globalProvider = new mgt.TeamsMsal2Provider({
+            clientId: '@Model.AppId',
+            scopes: ['OnlineMeetings.Read', 'Chat.ReadBasic'],
+            ssoUrl: `${window.location.origin}/teamsapp/authcallback`,
+            authPopupUrl: `${window.location.origin}/teamsapp/auth`,
+            httpMethod: 'POST'
+        });
+
+        microsoftTeams.initialize();
+        microsoftTeams.appInitialization.notifySuccess();
+        microsoftTeams.settings.registerOnSaveHandler(function (saveEvent) {
+                var languageId = $('#asrlangsel').val();
+                var translationId = $('#mtlangsel').val();
+                $.get(`${window.location.origin}/teamsapp/setAsrLang?thread=` + meetingId + "&lang=" + languageId, function () { });
+                languageId = !languageId ? '---' : languageId;
+                translationId = !translationId ? '---' : translationId;
+                microsoftTeams.settings.setSettings({
+                    entityID: "TildeMA",
+                    contentUrl: `${window.location.origin}/TeamsApp/SidePanel/${userId}/${meetingId}/${tenantId}/${languageId}/${translationId}/${themeColor}`,
+                    suggestedTabName: "Tilde MA",
+                    websiteUrl: `${window.location.origin}/TeamsApp/SidePanel`,
+                });
+                saveEvent.notifySuccess();
+        });
+
+        function checkAuthorization(){
+             $.post( `${window.location.origin}/teamsapp/isauthenticated/${tenantId}`)
+               .done(function() {
+                    enableSaveBtn();
+               })
+               .fail(function() {
+                  $('#applicationKey').show();
+                   $('#option').hide();
+               });
+        }
+
+        function enableSaveBtn(){
+            isAuthorized = true;
+             resetSaveBtnState();
+             $('#option').show();
+        }
+
+        function callOptions() {
+            optionsCalled = true;
+            var postObj = JSON.stringify({
+                Tid: tenantId,
+                Oid: userId,
+                Thread: meetingId,
+                Token: token
+            });
+
+            microsoftTeams.getContext(function (context) {
+                $.ajax({
+                    type: 'POST',
+                    url: `${window.location.origin}/teamsapp/options?culture=${context.locale}`,
+                    data: postObj,
+                    success: function (data) {
+                        $('#option>.spinner-border').hide();
+                        $('#option').append(data);
+                    },
+                    error: function (xhr, status, error) {
+                        $('#option').append(error);
+                        console.error({ error });
+                        $("#error").append(status);
+                    }
+                });
+
+            });
+
+            $.ajax({
+                type: 'GET',
+                url: `${window.location.origin}/teamsapp/AdminApprovalStatus/`+tenantId,
+                success: function (data) {
+                    adminApproval = !!data;
+                    if (!data){
+                        microsoftTeams.getContext(function (context) {
+                            $("#adminApproval").load(`${window.location.origin}/teamsapp/AdminApprovalLink?tenant=${tenantId}&baseurl=${window.location.origin}&culture=${context.locale}`);
+                        });
+                    }
+                    resetSaveBtnState();
+
+                },
+                error: function (xhr, status, error) {
+                    $('#option').append(error);
+
+                    console.error({ error });
+                    $("#error").append(status);
+                }
+            });
+
+
+        }
+        var actionObj = () => microsoftTeams.getContext(function (context) {
+
+             try {
+                userId = context.userObjectId;
+                meetingId = context.meetingId;
+                tenantId = context.tid;
+                if (!optionsCalled)
+                    callOptions();
+                checkAuthorization();
+
+
+            } catch (error) {
+                console.error({ error });
+                $("#error").append(error);
+            }
+        });
+        microsoftTeams.getContext(context => {
+            document.head.innerHTML += `<link rel="stylesheet" href="/teamsapp/css?theme=${context.theme}">`;
+            $.ajaxSetup({
+                contentType: "application/json"
+            });
+            themeColor = context.theme;
+            setTimeout(actionObj);
+
+        });
+        var themeColor = 'default';
+
+        $(function () {
+            $('#instructionLink').click(function () {
+                $('.collapse').collapse('toggle')
+            });
+        })
+
+          function onKeyInput(){
+              var keyVal = $('#appKeyInput').val();
+                  $('#access_key_success').hide();
+                  $('#invalid_access_key').hide();
+                  $.post( `${window.location.origin}/teamsapp/signin/${tenantId}/${keyVal}`)
+                  .done(function() {
+                       $('#access_key_success').fadeIn();
+                       $('#applicationKey').hide();
+                       $('#option').fadeIn();
+                       isAuthorized = true;
+                       resetSaveBtnState();
+                  })
+                  .fail(function() {
+                     $('#invalid_access_key').fadeIn();
+                     $('#keyInfoBar').hide();
+                  })
+          }
+          function resetSaveBtnState(){
+              if(isAuthorized && adminApproval){
+                  microsoftTeams.settings.setValidityState(true);
+              }else{
+                  microsoftTeams.settings.setValidityState(false);
+              }
+          }
+    </script>
+    <div class="containers">
+        <div class="row">
+            <div class="">
+
+                <div id="option">
+                    <p>
+                        @Localizer["INSTRUCTION_HEADER"].Value
+                    </p>
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">@Localizer["LOADING"].Value</span>
+                    </div>
+                </div>
+                <div id="access_key_success" class="alert alert-success" role="alert" style="display:none">
+                    @Localizer["APPLICATION_KEY_SUCCESS"].Value
+                </div>
+                <div id="key_success" class="alert alert-success" role="alert" style="display:none">
+                    @Localizer["YOU_HAVE_AN_ACTIVATED_KEY"].Value
+                </div>
+                <p class="my-3" id="keyInfoBar">
+                    @Html.Raw(@Localizer["GET_KEY_INFO"].Value)
+                </p>
+                <div id="applicationKey" class="mt-3" style="display:none">
+                    <label for="appKeyInput" class="form-label" style="width:100%">
+                        @Localizer["APPLICATION_KEY"].Value
+                    </label>
+                    <div style="display:flex; align-items:center">
+                        <input type="text" class="form-control" id="appKeyInput" style="height:37px">
+                        <button onclick="onKeyInput()" style="background-color: rgb(47 47 74); border-color: rgb(47 47 74); margin-left:10px" type="button" class="btn btn-primary">
+                            @Localizer["VERIFY"].Value
+                        </button>
+                    </div>
+                    <div id="invalid_access_key" class="alert alert-danger mt-3" role="alert" style="display:none">
+                        @Localizer["APPLICATION_KEY_INVALID"].Value
+                    </div>
+                    <div>
+                        @Html.Raw(Localizer["GET_KEY"].Value)
+                    </div>
+                </div>
+                <div id="error">
+                </div>
+            </div>
+
+            <div class="">
+                <a id="instructionLink" data-toggle="collapse" href="#collapseInstructions" role="button" aria-expanded="false" aria-controls="collapseInstructions" class="link">@Localizer["INSTRUCTIONS"].Value</a>
+            </div>
+            <div class="">
+                <div class="collapse" id="collapseInstructions">
+                    @Html.Raw(@Localizer["COLLAPSE_INSTRUCTIONS"].Value)
+
+                    <span>
+                        @Html.Raw(@Localizer["CREATED_BY"].Value)
+                    </span>
+                    <br />
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+    <div class="footers">
+
+        <div id="adminApproval">
+        </div>
+    </div>
+</body>
+

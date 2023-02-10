@@ -1,0 +1,12 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/PsiBot/v16/.suo
+/.vs/PsiBot/DesignTimeBuild
+/PsiBot/PsiBot.Service/Properties/PublishProfiles
+/.vs/PsiBot/config/applicationhost.config
+/PsiBot/PsiBot.Service/Transcripts
+/PsiBot/PsiBot.Service/appsettings.development.json
+/PsiBot/Meeting Assistant/Transcripts
+/.vs

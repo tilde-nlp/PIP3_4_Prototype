@@ -1,0 +1,15 @@
+﻿@using PsiBot.Services.ViewModel
+@model CloseThisPageModel
+
+@if (Model.success)
+{
+    <p style="font-size:30px">@Model.bigText</p>
+    <p>@Model.smallText</p>
+    <script>close()</script>
+}
+else
+{
+    <p style="font-size:30px">@Model.bigText</p>
+    <p>@Model.smallText</p>
+}
+

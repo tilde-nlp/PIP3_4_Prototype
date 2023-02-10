@@ -1,0 +1,50 @@
+﻿@using PsiBot.Model.Models;
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@model OptionsViewModel
+
+<div id="langSelectionDiv" class="select-label-holder real-time-language-block mt-5">
+    <p class="light-gray">@Localizer["TRANSLATION_LANG"].Value</p>
+    <div class="select-holder" style="overflow:visible">
+        <input id="mtlangsel" type="hidden" value="" />
+        <input id="mtlangselText" type="hidden" value="" />
+        <div id="mtlangsel" class="dropdown">
+            <a class="btn btn-secondary btn-sm dropdown-toggle" href="#"
+               role="button" id="mtlangselDropdown"
+               data-bs-toggle="dropdown"
+               aria-expanded="false">
+                @Localizer["SELECT_LANGUAGE"].Value
+            </a>
+
+            <ul class="dropdown-menu" aria-labelledby="mtlangselDropdown">
+                <li>
+                    <a class="dropdown-item disabled " disabled href="#">
+                        @Localizer["SELECT_LANGUAGE"].Value
+                    </a>
+                </li>
+                @foreach (var lang in Model.mtLangs)
+                {
+                    <li onclick="setmtLangValue('@Model.Lang(lang)', '@lang')">
+                        <a class="dropdown-item mtlangsel_@(lang)" href="#">
+                            @Model.Lang(lang)
+                        </a>
+                    </li>
+                }
+
+            </ul>
+        </div>
+    </div>
+</div>
+<script>
+    $(function () {
+        var selectedVal = localStorage.getItem('selectedMTLangauge');
+        setmtLangValue($('.mtlangsel_' + (selectedVal || '')).text(), selectedVal);
+
+    });
+    function setmtLangValue(text, value) {
+        $('#mtlangsel').val(value);
+        $('#mtlangselText').val(text);
+        $('#mtlangselDropdown').text(text);
+        applyMtLang(value);
+    }
+</script>

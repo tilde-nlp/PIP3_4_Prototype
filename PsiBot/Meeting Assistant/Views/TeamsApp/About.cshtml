@@ -1,0 +1,9 @@
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+<div class="collapse" id="collapseInstructions">
+    @Localizer["COLLAPSE_INSTRUCTIONS"].Value
+
+    <span>
+        @Localizer["CREATED_BY"].Value
+    </span>
+</div>

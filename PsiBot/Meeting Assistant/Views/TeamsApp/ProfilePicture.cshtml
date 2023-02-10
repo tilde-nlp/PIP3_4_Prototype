@@ -1,0 +1,9 @@
+﻿@using PsiBot.Model.Models;
+@model ProfilePictureViewModel
+@if(@Model.image != null )
+{
+    <img src="@Model.image" />
+}
+@if(@Model.image == null) { 
+<div class="initials" style="color:@Model.color; background-color:@Model.bgcolor;">@Model.initials</div>
+}

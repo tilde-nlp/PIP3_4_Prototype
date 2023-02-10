@@ -1,0 +1,14 @@
+﻿[
+  {
+    "outputFile": "CSS/Common.css",
+    "inputFile": "CSS/Common.less"
+  },
+  {
+    "outputFile": "CSS/Dark.css",
+    "inputFile": "CSS/Dark.less"
+  },
+  {
+    "outputFile": "CSS/Light.css",
+    "inputFile": "CSS/Light.less"
+  }
+]
